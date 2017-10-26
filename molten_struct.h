@@ -85,6 +85,7 @@ typedef struct mo_chain_st {
 
     /* trace log */
     mo_chain_log_t *pcl; 
+    int enable;
 
 } mo_chain_t;
 

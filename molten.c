@@ -679,8 +679,11 @@ PHP_RSHUTDOWN_FUNCTION(molten)
 
     /* Flush and dtor log */
     if (PTG(pct).pch.is_sampled == 1) {
+      if(PTG(pct).enable){
         mo_chain_log_flush(&PTG(pcl));
-        mo_stack_destroy(&PTG(span_stack));
+		mo_stack_destroy(&PTG(span_stack));
+      }
+     
     }
 
     /* Ctrl record */
@@ -728,6 +731,7 @@ PHP_FUNCTION(molten_set_service_name)
 #endif
     efree(PTG(pct).service_name);
     PTG(pct).service_name = estrdup(MO_STR(service_name)); 
+    PTG(pct).enable = 1;
     RETURN_TRUE;
 }
 /* }}} */
