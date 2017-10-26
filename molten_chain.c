@@ -42,13 +42,13 @@ void mo_obtain_local_ip(char *ip)
     struct sockaddr_in *ipv4;
     char buf[INET_ADDRSTRLEN];
     int status;
-    
+
     memset(ip, 0x00, INET_ADDRSTRLEN);
     strncpy(ip, "127.0.0.1", INET_ADDRSTRLEN);
 
-    status = getifaddrs(&myaddrs); 
+    status = getifaddrs(&myaddrs);
     if (status != 0) {
-        //todo log 
+        //todo log
         return;
     }
 
@@ -84,7 +84,7 @@ void mo_build_chain_header(mo_chain_t *pct, mo_span_builder *psb, char *ip)
 {
     /* loaded header */
     mo_chain_header_t *pch = &(pct->pch);
-    
+
     zval *server_addr;
     if (find_server_var("SERVER_ADDR", sizeof("SERVER_ADDR"), (void **)&server_addr) == SUCCESS) {
         strncpy(pch->ip, Z_STRVAL_P(server_addr), INET_ADDRSTRLEN);
@@ -102,10 +102,10 @@ void mo_build_chain_header(mo_chain_t *pct, mo_span_builder *psb, char *ip)
         HashTable *ht = pch->chain_header_key;
         zval *tmp = NULL;
         mo_chain_key_t *pck;
-        for(zend_hash_internal_pointer_reset(ht); 
+        for(zend_hash_internal_pointer_reset(ht);
                 zend_hash_has_more_elements(ht) == SUCCESS;
                 zend_hash_move_forward(ht)) {
-            
+
             if (mo_zend_hash_get_current_data(ht, (void **)&pck) == SUCCESS) {
                 if (find_server_var(pck->receive_key, pck->receive_key_len, (void **)&tmp) == SUCCESS) {
                     if (Z_TYPE_P(tmp) == IS_STRING) {
@@ -115,7 +115,7 @@ void mo_build_chain_header(mo_chain_t *pct, mo_span_builder *psb, char *ip)
             }
         }
     }
-    
+
     /* generate trace_id */
     if (!pch->trace_id->val) {
         rand64hex(&pch->trace_id->val);
@@ -149,7 +149,7 @@ void mo_init_chain_header(mo_chain_header_t *pch)
 {
     ALLOC_HASHTABLE(pch->chain_header_key);
     zend_hash_init(pch->chain_header_key, 8, NULL,  mo_key_destory_func, 0);
-   
+
     /* chain header */
     /* trace id */
     mo_chain_key_t *trace_id = (mo_chain_key_t *)emalloc(sizeof(mo_chain_key_t));
@@ -221,13 +221,16 @@ void mo_chain_header_dtor(mo_chain_header_t *pch)
 void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, mo_stack *span_stack, char *service_name, char *ip)
 {
     pct->pcl = pcl;
-   
+
     if (pct->pch.is_sampled == 1) {
         /* request method */
         pct->method = (char *) SG(request_info).request_method;
 
         /* service name */
         pct->service_name = estrdup(service_name);
+
+        /*新的请求进来重置开关*/
+        pct->enable = 0;
 
         pct->span_stack = span_stack;
 
@@ -239,7 +242,7 @@ void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, m
         //pct->execute_begin_time = (long) SG(global_request_time) * 1000000.00;
         pct->execute_begin_time = mo_time_usec();
         pct->execute_end_time = 0;
-        
+
         /* script */
         if (SG(request_info).path_translated != NULL) {
             pct->script = estrdup(SG(request_info).path_translated);
@@ -273,7 +276,7 @@ void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb, mo_stack *span_stack)
 
         retrieve_span_id(span_stack, &span_id);
         retrieve_parent_span_id(span_stack, &parent_span_id);
-        
+
         if (pct->method == NULL) {
             psb->start_span(&span, (char *)pct->sapi, pct->pch.trace_id->val, span_id, parent_span_id,  pct->execute_begin_time, pct->execute_end_time, pct, AN_SERVER);
         } else {
@@ -312,10 +315,10 @@ void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb, mo_stack *span_stack)
         HashTable *ht = Z_ARRVAL_P(pct->error_list);
         zval *error_string;
 #if PHP_VERSION_ID < 70000
-        for(zend_hash_internal_pointer_reset(ht); 
+        for(zend_hash_internal_pointer_reset(ht);
                 zend_hash_has_more_elements(ht) == SUCCESS;
                 zend_hash_move_forward(ht)) {
-              
+
             if (mo_zend_hash_get_current_data(ht, (void **)&error_string) == SUCCESS) {
                 if (MO_Z_TYPE_P(error_string) == IS_STRING) {
                     psb->span_add_ba_ex(span, "error", Z_STRVAL_P(error_string), pct->execute_begin_time, pct, BA_ERROR);
@@ -329,7 +332,7 @@ void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb, mo_stack *span_stack)
             }
        } ZEND_HASH_FOREACH_END();
 #endif
-        
+
         if (pct->is_cli == 1 && pct->argc > 1) {
             int i = 1;
             char argv[1024];
