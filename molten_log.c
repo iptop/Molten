@@ -16,6 +16,124 @@
 
 #include "molten_log.h" 
 
+
+int report_msg_queue_length;
+int report_msg_is_init=0;
+pthread_mutex_t report_msg_queue_mutex;
+struct report_msg_queue_node{
+  struct report_msg_queue_node* prev;
+  struct report_msg_queue_node* next;
+  char * data;
+};
+struct report_msg_queue_node * report_msg_queue_start;
+struct report_msg_queue_node * report_msg_queue_end;
+char * report_msg_queue_pop();
+
+
+void *report_msg_thread_function(void *arg)
+{
+
+  
+  char post_url[255];
+  memcpy(post_url,arg,strlen(arg));
+ 
+  char * msg;
+  while( report_msg_thread_is_exit!=1  ){
+
+    
+
+    while(  msg = report_msg_queue_pop()   ){
+
+
+      if( report_msg_thread_is_exit==1 ){
+	return ;
+      }
+
+     
+      send_data_by_http(post_url, msg);
+     
+      free( msg);
+
+     
+    }
+    usleep(100);
+  }
+
+}
+
+
+void report_msg_queue_init(  ){
+  pthread_mutex_init(&report_msg_queue_mutex,NULL);
+  report_msg_queue_length=0;
+  report_msg_queue_start=(struct report_msg_queue_node *)malloc(sizeof(struct report_msg_queue_node));
+  report_msg_queue_start->prev=NULL;
+  report_msg_queue_start->next=NULL;
+  report_msg_queue_start->data=NULL;
+  report_msg_queue_end=report_msg_queue_start;
+
+
+}
+
+void report_msg_init( char * post_url ){
+  if(report_msg_is_init==0){
+    report_msg_is_init=1;
+  }else{
+    return;
+  }
+
+  
+
+  report_msg_queue_init();
+  
+  pthread_create(&report_msg_thread_id, NULL, report_msg_thread_function, (void *)post_url);
+  report_msg_thread_is_create=1;
+  report_msg_thread_is_exit=0;
+}
+
+void report_msg_queue_push(char * msg){
+  pthread_mutex_lock(&report_msg_queue_mutex);
+  report_msg_queue_length++;
+  if(report_msg_queue_start->data==NULL){
+    report_msg_queue_start->data=msg;
+    pthread_mutex_unlock(&report_msg_queue_mutex);
+  }else{
+    struct report_msg_queue_node* report_msg_queue_temp = (struct report_msg_queue_node *)malloc(sizeof(struct report_msg_queue_node));
+    report_msg_queue_temp->prev=NULL;
+    report_msg_queue_temp->next=report_msg_queue_start;
+    report_msg_queue_temp->data=msg;
+    report_msg_queue_start->prev=report_msg_queue_temp;
+    report_msg_queue_start = report_msg_queue_temp;
+
+    
+    
+    pthread_mutex_unlock(&report_msg_queue_mutex);
+  }
+}
+
+
+
+char * report_msg_queue_pop(){
+  pthread_mutex_lock(&report_msg_queue_mutex);
+  if(report_msg_queue_end->data==NULL){
+    pthread_mutex_unlock(&report_msg_queue_mutex);
+    return NULL;
+  }else{
+    char * ret = report_msg_queue_end->data;
+   
+    if(report_msg_queue_end->prev!=NULL){
+      struct report_msg_queue_node * temp = report_msg_queue_end;
+      report_msg_queue_end= report_msg_queue_end->prev;
+      free(temp);
+    }else{
+      report_msg_queue_end->data=NULL;
+    }
+    pthread_mutex_unlock(&report_msg_queue_mutex);
+    report_msg_queue_length--;
+    return  ret;
+  }
+}
+
+
 #define CLOSE_LOG_FD do {                   \
         close(log->fd);                     \
         log->fd = -1;                       \
@@ -422,6 +540,9 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
 /* {{{ pt write info to log */
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size) 
 {
+
+  report_msg_init( log->post_uri  );
+  char * temp;
     SLOG(SLOG_INFO, "[sink] mo log write sink_type [%d]", log->sink_type);
     switch (log->sink_type) {
         case SINK_STD:
@@ -455,8 +576,16 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
             break;
 #ifdef HAS_CURL
         case SINK_HTTP:
-            send_data_by_http(log->post_uri, bytes);
-            break;
+
+	  if(report_msg_queue_length<1024){
+	    temp= (char *)malloc(size+1);
+	    if(temp!=NULL){
+	      memcpy(temp,bytes,size+1);
+	      report_msg_queue_push(temp);
+	    }
+	  }
+          //send_data_by_http(log->post_uri, bytes);
+	  break;
 #endif
 
 #ifdef HAS_KAFKA

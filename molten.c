@@ -214,6 +214,7 @@ static void molten_reload_curl_function()
 /* {{{ clear replace function */
 static void molten_clear_reload_function()
 {
+
     const mo_reload_def *p = &(prd[0]);
 #if PHP_MAJOR_VERSION < 7
     zend_function *orig;
@@ -570,6 +571,15 @@ PHP_MINIT_FUNCTION(molten)
 /* {{{ PHP MSHUTDOWN Function */
 PHP_MSHUTDOWN_FUNCTION(molten)
 {
+
+  usleep(300);
+  report_msg_thread_is_exit=1;
+  if(report_msg_thread_is_create==1){
+    pthread_join( report_msg_thread_id,NULL );
+  }
+
+
+  
     UNREGISTER_INI_ENTRIES();
 
     if (!PTG(enable)) {

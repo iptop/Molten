@@ -37,6 +37,8 @@
 
 # if defined(__linux__)
 #include <linux/limits.h>
+#include <pthread.h>
+#include <unistd.h>
 # endif
 
 #ifdef HAS_CURL
@@ -141,5 +143,8 @@ void mo_chain_add_span(mo_chain_log_t *log, zval *span);
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size);
 #ifdef HAS_CURL
 void send_data_by_http(char *post_uri, char *post_data);
+pthread_t report_msg_thread_id;
+int report_msg_thread_is_exit;
+int report_msg_thread_is_create;
 #endif
 #endif
