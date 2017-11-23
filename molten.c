@@ -42,7 +42,7 @@
                 return SUCCESS;                                                                 \
             }                                                                                   \
     }                                                                                           \
-}while(0)                                                                                 
+}while(0)
 PHP_FUNCTION(molten_set_service_name);
 PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
@@ -106,14 +106,14 @@ static const zend_module_dep molten_deps[] = {
     ZEND_MOD_REQUIRED("json")
     ZEND_MOD_REQUIRED("standard")
     ZEND_MOD_REQUIRED("curl")
-    ZEND_MOD_OPTIONAL("memcached")    
-    ZEND_MOD_OPTIONAL("redis")    
-    ZEND_MOD_OPTIONAL("mongodb")    
-    ZEND_MOD_OPTIONAL("mysqli")    
+    ZEND_MOD_OPTIONAL("memcached")
+    ZEND_MOD_OPTIONAL("redis")
+    ZEND_MOD_OPTIONAL("mongodb")
+    ZEND_MOD_OPTIONAL("mysqli")
 #ifdef HAS_PDO
     ZEND_MOD_REQUIRED("PDO")
 #else
-    ZEND_MOD_OPTIONAL("PDO")    
+    ZEND_MOD_OPTIONAL("PDO")
 #endif
     ZEND_MOD_END
 };
@@ -127,7 +127,7 @@ typedef struct mo_reload_def_st {
 } mo_reload_def;
 /* }}} */
 
-/* {{{ molten_reload_def */ 
+/* {{{ molten_reload_def */
 static const mo_reload_def prd[] = {
     {"curl_setopt",         "molten_curl_setopt",         "origin_molten_curl_setopt"},
     {"curl_exec",           "molten_curl_exec",           "origin_molten_curl_exec"},
@@ -221,7 +221,7 @@ static void molten_clear_reload_function()
     while (p->orig_func != NULL) {
         if (zend_hash_find(CG(function_table), p->save_func, strlen(p->save_func)+1, (void **)&orig) == SUCCESS) {
               zend_hash_update(CG(function_table), p->orig_func, strlen(p->orig_func)+1, orig, sizeof(zend_function), NULL);
-              zend_hash_del(CG(function_table), p->save_func, strlen(p->save_func)+1); 
+              zend_hash_del(CG(function_table), p->save_func, strlen(p->save_func)+1);
          }
         p++;
     }
@@ -231,7 +231,7 @@ static void molten_clear_reload_function()
         if ((orig = zend_hash_str_find_ptr(CG(function_table), p->save_func, strlen(p->save_func))) != NULL) {
               zend_hash_str_update_mem(CG(function_table), p->orig_func, strlen(p->orig_func), orig, sizeof(zend_internal_function));
               function_add_ref(orig);
-              zend_hash_str_del(CG(function_table), p->save_func, strlen(p->save_func)); 
+              zend_hash_str_del(CG(function_table), p->save_func, strlen(p->save_func));
          }
         p++;
     }
@@ -270,7 +270,7 @@ PHP_FUNCTION(molten_curl_setopt)
     } else {
         PTG(pit).curl_header_internel_call = HEADER_OUT_CALL;
     }
-   
+
     /* execute origin function */
     if (origin_curl_setopt != NULL) {
         origin_curl_setopt->internal_function.handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
@@ -288,7 +288,7 @@ PHP_FUNCTION(molten_curl_exec)
     zval *res;
     char *span_id = NULL;
     uint64_t entry_time;
-    
+
     /* build span_id */
     if (PTG(pct).pch.is_sampled == 1) {
         entry_time = mo_time_usec();
@@ -310,13 +310,13 @@ PHP_FUNCTION(molten_curl_exec)
             array_init(option);
             is_init = 1;
         }
-        
+
         retrieve_span_id(&PTG(span_stack), &span_id);
         add_http_trace_header(pit->pct, option, span_id);
 
         /* curl set header internel call */
         pit->curl_header_internel_call = HEADER_INTERNAL_CALL;
-        
+
         zval func;
         zval *argv[3];
         zval ret;
@@ -335,9 +335,9 @@ PHP_FUNCTION(molten_curl_exec)
 #endif
             MO_FREE_ALLOC_ZVAL(option);
         }
-        mo_zval_dtor(&func); 
+        mo_zval_dtor(&func);
     }
-    
+
     /* execute origin function */
     if (origin_curl_exec != NULL) {
         origin_curl_exec->internal_function.handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
@@ -346,7 +346,7 @@ PHP_FUNCTION(molten_curl_exec)
     /* after */
     /* must sampling will do this */
     if (result == SUCCESS && PTG(pct).pch.is_sampled == 1) {
-        uint64_t current_time = mo_time_usec(); 
+        uint64_t current_time = mo_time_usec();
         zval *curl_span;
         char *parent_span_id;
         retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
@@ -356,7 +356,7 @@ PHP_FUNCTION(molten_curl_exec)
 
         /* record response if response exist */
         if (return_value != NULL && MO_Z_TYPE_P(return_value) == IS_STRING && Z_STRLEN_P(return_value) > 0) {
-#define RESPONSE_MAX_LEN 128
+#define RESPONSE_MAX_LEN 10240
             int response_len = Z_STRLEN_P(return_value);
             char *response_string = NULL;
             if (response_len > RESPONSE_MAX_LEN) {
@@ -399,7 +399,7 @@ PHP_FUNCTION(molten_curl_setopt_array)
 #endif
         }
     }
-    
+
     /* execute origin function */
     if (origin_curl_setopt_array != NULL) {
         origin_curl_setopt_array->internal_function.handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
@@ -421,7 +421,7 @@ PHP_FUNCTION(molten_curl_reset)
         HashTable *ht = Z_ARRVAL_P(PTG(pit).curl_header_record);
         mo_zend_hash_index_del(ht, Z_RESVAL_P(zid));
     }
-    
+
     /* execute origin function */
     if (origin_curl_reset != NULL) {
         origin_curl_reset->internal_function.handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
@@ -434,7 +434,7 @@ PHP_FUNCTION(molten_curl_reset)
 
 /* {{{ molten span format */
 PHP_FUNCTION(molten_span_format)
-{ 
+{
 #ifdef USE_LEVEL_ID
 #if PHP_MAJOR_VERSION < 7
     RETURN_STRINGL("level", sizeof("level") -1, 1);
@@ -520,7 +520,7 @@ PHP_MINIT_FUNCTION(molten)
     }
 
     CHECK_SAPI_NAME;
-    
+
     /* slog */
     SLOG_INIT(SLOG_STDOUT, "/tmp/molten.log");
 
@@ -541,7 +541,7 @@ PHP_MINIT_FUNCTION(molten)
     /* Replace error call back */
     trace_original_error_cb = zend_error_cb;
     zend_error_cb = molten_error_cb;
-    
+
     /* Set common data */
     /* http request */
     PTG(pct).sapi = sapi_module.name;
@@ -557,7 +557,7 @@ PHP_MINIT_FUNCTION(molten)
 
     /* module ctor */
     mo_obtain_local_ip(PTG(ip));
-    mo_shm_ctor(&PTG(msm));   
+    mo_shm_ctor(&PTG(msm));
     mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request));
     mo_span_ctor(&PTG(psb), PTG(span_format));
     mo_chain_log_ctor(&PTG(pcl), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
@@ -579,13 +579,13 @@ PHP_MSHUTDOWN_FUNCTION(molten)
   }
 
 
-  
+
     UNREGISTER_INI_ENTRIES();
 
     if (!PTG(enable)) {
         return SUCCESS;
     }
-    
+
     CHECK_SAPI_NAME;
 
 
@@ -601,9 +601,9 @@ PHP_MSHUTDOWN_FUNCTION(molten)
 
     /* Clear overload function */
     molten_clear_reload_function();
-    
+
     /* module dtor */
-    mo_shm_dtor(&PTG(msm));   
+    mo_shm_dtor(&PTG(msm));
     mo_ctrl_dtor(&PTG(prt));
     mo_chain_log_dtor(&PTG(pcl));
     mo_intercept_dtor(&PTG(pit));
@@ -637,7 +637,7 @@ PHP_RINIT_FUNCTION(molten)
 
     /* Set in request life time */
     PTG(in_request) = 1;
-    
+
     /* execute begin time */
     PTG(execute_begin_time) = (long) SG(global_request_time) * 1000000;
 
@@ -647,13 +647,13 @@ PHP_RINIT_FUNCTION(molten)
     /* Output status */
     mo_request_handle(&PTG(prt));
 
-    /* Judge sampling */ 
+    /* Judge sampling */
     mo_ctrl_sampling(&PTG(prt), &PTG(pct));
 
     /* Init log module */
     if (PTG(pct).pch.is_sampled == 1) {
         mo_chain_log_init(&PTG(pcl));
-        init_span_context(&PTG(span_stack)); 
+        init_span_context(&PTG(span_stack));
     }
 
     /* Tracing basic info generate */
@@ -683,7 +683,7 @@ PHP_RSHUTDOWN_FUNCTION(molten)
     /* dtor tracing basic info */
     /* Set out request life time */
     PTG(in_request) = 0;
-    
+
     /* Chain dtor */
     mo_chain_dtor(&PTG(pct), &PTG(psb), &PTG(span_stack));
 
@@ -693,7 +693,7 @@ PHP_RSHUTDOWN_FUNCTION(molten)
         mo_chain_log_flush(&PTG(pcl));
 		mo_stack_destroy(&PTG(span_stack));
       }
-     
+
     }
 
     /* Ctrl record */
@@ -726,21 +726,21 @@ PHP_MINFO_FUNCTION(molten)
 
 /* {{{ Ptracing set service name */
 PHP_FUNCTION(molten_set_service_name)
-{      
+{
 #if PHP_VERSION_ID < 70000
     char *service_name;
     int service_name_len;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &service_name, &service_name_len) == FAILURE) {
-        RETURN_FALSE;   
+        RETURN_FALSE;
     }
 #else
     zend_string *service_name;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &service_name) == FAILURE) {
-        RETURN_FALSE;   
+        RETURN_FALSE;
     }
 #endif
     efree(PTG(pct).service_name);
-    PTG(pct).service_name = estrdup(MO_STR(service_name)); 
+    PTG(pct).service_name = estrdup(MO_STR(service_name));
     PTG(pct).enable = 1;
     RETURN_TRUE;
 }
@@ -800,7 +800,7 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
     /* args init */
     args = NULL;
     frame->arg_count = 0;
-    
+
     /* link to global stack */
     frame->span_stack = &PTG(span_stack);
 
@@ -820,7 +820,7 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
     /* function name */
     if (zf->common.function_name) {
         smart_string_appends(&frame->function, MO_STR(zf->common.function_name));
-    } 
+    }
 #if PHP_VERSION_ID >= 50414
     if (zf->common.scope && zf->common.scope->trait_aliases) {
         /* Use trait alias instead real function name.
@@ -830,7 +830,7 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
         smart_string_appends(&frame->function, MO_STR(zend_resolve_method_name(MO_EX_OBJ(ex) ? MO_EX_OBJCE(ex) : zf->common.scope, zf)));
     }
 #endif
-    
+
 #if PHP_VERSION_ID < 70000
     if (caller && MO_EX_OBJ(caller)) {
         /* obj */
@@ -867,9 +867,9 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
 
     /* Something is very different between user function and internal function */
 
-    /* ori_args for user defined method/func will be dtor at some time, 
-     * so we must capture some info before execute 
-     * NOTICE, we also can add ref for every zval like 'debug_backtrace', 
+    /* ori_args for user defined method/func will be dtor at some time,
+     * so we must capture some info before execute
+     * NOTICE, we also can add ref for every zval like 'debug_backtrace',
      * but it will trigger performance problem.
      *
      * php5.6/5.5/5.4, if args not object always do this action  SEPARATE_ZVAL_TO_MAKE_IS_REF(arg).
@@ -982,7 +982,7 @@ ZEND_API void mo_execute_core(int internal, zend_execute_data *execute_data, zva
 
     PTG(level)++;
 
-    zend_bool match_intercept = 1; 
+    zend_bool match_intercept = 1;
     mo_interceptor_ele_t *i_ele;
 
     /* If not in request life time, we do nothing. because of the we not init the info
@@ -996,7 +996,7 @@ ZEND_API void mo_execute_core(int internal, zend_execute_data *execute_data, zva
     if (match_intercept) {
 #if PHP_VERSION_ID < 50500
         zend_function *zf = obtain_zend_function(internal, execute_data, op_array);
-#else 
+#else
         zend_function *zf = obtain_zend_function(internal, execute_data, NULL);
 #endif
         const char *class_name = (zf->common.scope != NULL && zf->common.scope->name != NULL)  ? MO_STR(zf->common.scope->name) : NULL;
@@ -1011,7 +1011,7 @@ ZEND_API void mo_execute_core(int internal, zend_execute_data *execute_data, zva
         frame_build(&frame, internal, MO_FRAME_ENTRY, caller, execute_data, NULL TSRMLS_CC);
 #endif
         /* run capture */
-        i_ele->capture != NULL ? i_ele->capture(&PTG(pit), &frame) : NULL;  
+        i_ele->capture != NULL ? i_ele->capture(&PTG(pit), &frame) : NULL;
 
         /* Register return value ptr */
 #if PHP_VERSION_ID < 70000
@@ -1092,7 +1092,7 @@ ZEND_API void mo_execute_core(int internal, zend_execute_data *execute_data, zva
         frame.type = MO_FRAME_EXIT;
 
         /* Record call result */
-        i_ele->record(&PTG(pit), &frame);  
+        i_ele->record(&PTG(pit), &frame);
 
 #if PHP_VERSION_ID < 70000
         /* Free return value */
@@ -1156,7 +1156,7 @@ void molten_error_cb(int type, const char *error_filename, const uint error_line
 #else
     error_handling  = PG(error_handling);
 #endif
-    
+
     /* record error */
     if (error_handling == EH_NORMAL) {
         switch (type) {
@@ -1167,7 +1167,7 @@ void molten_error_cb(int type, const char *error_filename, const uint error_line
             case E_USER_ERROR:
             //case E_USER_WARNING:
                 error_info = emalloc(total_len);
-                bzero(error_info, total_len); 
+                bzero(error_info, total_len);
                 int pos = snprintf(error_info, total_len, "type:%d, file:%s, line:%d ", type, error_filename, error_lineno);
                 if (pos < total_len-1) {
                     va_list copy_args;
@@ -1206,10 +1206,10 @@ void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id)
 
             /* append current header */
             HashTable *ht = pct->pch.chain_header_key;
-            for(zend_hash_internal_pointer_reset(ht); 
+            for(zend_hash_internal_pointer_reset(ht);
                     zend_hash_has_more_elements(ht) == SUCCESS;
                     zend_hash_move_forward(ht)) {
-                
+
                 if (mo_zend_hash_get_current_data(ht, (void **)&pck) == SUCCESS) {
 
                     char *pass_value;
@@ -1234,11 +1234,11 @@ void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id)
 
             int is_set_flag = 0;
             HashTable *header_ht = Z_ARRVAL_P(header);
-            zval *tmp_header; 
+            zval *tmp_header;
 
 #if PHP_VERSION_ID < 70000
             /* check set current x-w-sampled flag or not */
-            for(zend_hash_internal_pointer_reset(header_ht); 
+            for(zend_hash_internal_pointer_reset(header_ht);
                     zend_hash_has_more_elements(header_ht) == SUCCESS;
                     zend_hash_move_forward(header_ht)) {
                 if (mo_zend_hash_get_current_data(header_ht, (void **)&tmp_header) == SUCCESS) {
@@ -1254,7 +1254,7 @@ void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id)
                 }
             } ZEND_HASH_FOREACH_END();
 #endif
-            
+
             if (is_set_flag == 0) {
                 mo_add_next_index_string(header, MOLTEN_HEADER_SAMPLED": 0", 1);
             }
@@ -1262,5 +1262,3 @@ void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id)
         }
     }
 }
-
-

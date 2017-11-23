@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "molten_log.h" 
+#include "molten_log.h"
 
 
 int report_msg_queue_length;
@@ -33,14 +33,14 @@ char * report_msg_queue_pop();
 void *report_msg_thread_function(void *arg)
 {
 
-  
+
   char post_url[255];
   memcpy(post_url,arg,strlen(arg));
- 
+
   char * msg;
   while( report_msg_thread_is_exit!=1  ){
 
-    
+
 
     while(  msg = report_msg_queue_pop()   ){
 
@@ -49,14 +49,14 @@ void *report_msg_thread_function(void *arg)
 	return ;
       }
 
-     
+
       send_data_by_http(post_url, msg);
-     
+
       free( msg);
 
-     
+
     }
-    usleep(100);
+    usleep(100000);
   }
 
 }
@@ -81,10 +81,10 @@ void report_msg_init( char * post_url ){
     return;
   }
 
-  
+
 
   report_msg_queue_init();
-  
+
   pthread_create(&report_msg_thread_id, NULL, report_msg_thread_function, (void *)post_url);
   report_msg_thread_is_create=1;
   report_msg_thread_is_exit=0;
@@ -104,8 +104,8 @@ void report_msg_queue_push(char * msg){
     report_msg_queue_start->prev=report_msg_queue_temp;
     report_msg_queue_start = report_msg_queue_temp;
 
-    
-    
+
+
     pthread_mutex_unlock(&report_msg_queue_mutex);
   }
 }
@@ -119,7 +119,7 @@ char * report_msg_queue_pop(){
     return NULL;
   }else{
     char * ret = report_msg_queue_end->data;
-   
+
     if(report_msg_queue_end->prev!=NULL){
       struct report_msg_queue_node * temp = report_msg_queue_end;
       report_msg_queue_end= report_msg_queue_end->prev;
@@ -197,7 +197,7 @@ static void trans_log_by_kafka(mo_chain_log_t *log, char *post_data)
         return;
     }
 
-    rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb); 
+    rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb);
 
     rd_kafka_t *rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
 
@@ -213,7 +213,7 @@ static void trans_log_by_kafka(mo_chain_log_t *log, char *post_data)
         rd_kafka_destroy(rk);
         return;
     }
-    
+
     size_t len = strlen(post_data);
     if (rd_kafka_produce(rkt, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY, post_data, len, NULL, 0, NULL) == -1) {
         // todo record error
@@ -224,7 +224,7 @@ static void trans_log_by_kafka(mo_chain_log_t *log, char *post_data)
     } else {
         // todo record sucess
     }
-    
+
     rd_kafka_poll(rk, 0);
 
     rd_kafka_flush(rk, 100 );// wait for max 100 milliseconds
@@ -291,7 +291,7 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, lon
     log->buf = pemalloc(ALLOC_LOG_SIZE, 1);
     log->total_size = ALLOC_LOG_SIZE;
     log->alloc_size = 0;
-    
+
     /* set support type */
     log->support_type = SINK_LOG | SINK_STD | SINK_SYSLOG ;
 #ifdef HAS_CURL
@@ -302,7 +302,7 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, lon
 #ifdef HAS_KAFKA
     log->support_type |= SINK_KAFKA;
 #endif
-    
+
     /* todo for func cb, current use if else */
     if (log->sink_type == SINK_LOG) {
         generate_log_path(log);
@@ -341,7 +341,7 @@ void mo_chain_log_dtor(mo_chain_log_t *log)
 void mo_chain_log_init(mo_chain_log_t *log)
 {
     memset(log->buf, 0x00, log->total_size);
-    log->alloc_size = 0; 
+    log->alloc_size = 0;
     MO_ALLOC_INIT_ZVAL(log->spans);
     array_init(log->spans);
 }
@@ -371,7 +371,7 @@ void mo_chain_log_add(mo_chain_log_t *log, char *buf, size_t size)
     }
     strncpy(log->buf + log->alloc_size, buf, size);
     log->alloc_size  += size;
-    
+
     /* add addtion break line only for std and file */
     if (log->sink_type <= SINK_STD) {
         strncpy(log->buf + log->alloc_size, "\n", 1);
@@ -390,7 +390,7 @@ static int mo_mkdir_recursive(const char *dir)
     char tmp[PATH_MAX];
     strncpy(tmp, dir, PATH_MAX);
     int i, len = strlen(tmp);
-    
+
 
     if (dir[len - 1] != '/')
     {
@@ -479,9 +479,9 @@ static void inline flush_log_to_fd(mo_chain_log_t *log, char *bytes, int size)
 /* }}} */
 
 /* {{{ flush log to syslog */
-/* 
- * facility 20 (ocal use 4) and serverity 6 
- * see rfc3164 
+/*
+ * facility 20 (ocal use 4) and serverity 6
+ * see rfc3164
  *
  */
 static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int size)
@@ -504,7 +504,7 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
         SLOG(SLOG_ERROR, "[sink][syslog] get local time error");
         return;
     }
-    
+
     if (strftime(str_time, sizeof(str_time), "%b %d %H:%M:%S", tmp) == 0) {
         SLOG(SLOG_ERROR, "[sink][syslog] format strftime error");
         return;
@@ -512,7 +512,7 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
 
     memset(sys_log_header, 0x00, sizeof(sys_log_header));
     header_len = sprintf(sys_log_header, "<166> %s %s %s:", str_time, log->host_name, "molten");
-    send_len = size + header_len; 
+    send_len = size + header_len;
 
     /* here is two buffer, we need sendmsg */
     struct msghdr msg;
@@ -521,12 +521,12 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
     msg.msg_namelen = sizeof(struct sockaddr_un);
     msg.msg_iov = vec;
     msg.msg_iovlen = 2;
-    
+
     vec[0].iov_base = sys_log_header;
     vec[0].iov_len = header_len;
     vec[1].iov_base = bytes;
     vec[1].iov_len = size;
-    
+
     msg.msg_control = 0;
     msg.msg_controllen = 0;
     msg.msg_flags = 0;
@@ -538,7 +538,7 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
 /* }}} */
 
 /* {{{ pt write info to log */
-void mo_log_write(mo_chain_log_t *log, char *bytes, int size) 
+void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
 {
 
   report_msg_init( log->post_uri  );
@@ -567,7 +567,7 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
                 struct stat sb;
                 if (lstat(log->real_path, &sb) != -1) {
                     log->ino = sb.st_ino;
-                } 
+                }
             }
             flush_log_to_fd(log, bytes, size);
             break;
@@ -606,13 +606,13 @@ void mo_chain_log_flush(mo_chain_log_t *log)
     /* Init json encode function */
     zval func;
     MO_ZVAL_STRING(&func, "json_encode", 1);
-    
+
     if (log->output_type == SPANS_BREAK) {
         /* Encode one span one line , easy for debug */
         HashTable *ht = Z_ARRVAL_P(log->spans);
         zval *span;
 #if PHP_VERSION_ID < 70000
-        for(zend_hash_internal_pointer_reset(ht); 
+        for(zend_hash_internal_pointer_reset(ht);
                 zend_hash_has_more_elements(ht) == SUCCESS;
                 zend_hash_move_forward(ht)) {
             if (mo_zend_hash_get_current_data(ht, (void **)&span) == SUCCESS) {
@@ -648,10 +648,10 @@ void mo_chain_log_flush(mo_chain_log_t *log)
             goto end;
         }
     }
-     
+
     SLOG(SLOG_INFO, "[sink] mo log flush detail size:%d", log->alloc_size);
     mo_log_write(log, log->buf, log->alloc_size);
-    
+
 end:
     mo_zval_dtor(&func);
     mo_zval_ptr_dtor(&log->spans);
