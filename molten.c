@@ -43,6 +43,7 @@
             }                                                                                   \
     }                                                                                           \
 }while(0)
+PHP_FUNCTION(molten_get_trace_id);
 PHP_FUNCTION(molten_set_service_name);
 PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
@@ -92,6 +93,7 @@ extern sapi_module_struct sapi_module;
 
 /* Every user visible function must have an entry in trace_functions[]. */
 const zend_function_entry molten_functions[] = {
+    PHP_FE(molten_get_trace_id, NULL)
     PHP_FE(molten_set_service_name, NULL)
     PHP_FE(molten_curl_setopt, NULL)
     PHP_FE(molten_curl_setopt_array, NULL)
@@ -572,7 +574,7 @@ PHP_MINIT_FUNCTION(molten)
 PHP_MSHUTDOWN_FUNCTION(molten)
 {
 
-  usleep(300);
+  usleep(300000);
   report_msg_thread_is_exit=1;
   if(report_msg_thread_is_create==1){
     pthread_join( report_msg_thread_id,NULL );
@@ -723,6 +725,21 @@ PHP_MINFO_FUNCTION(molten)
     DISPLAY_INI_ENTRIES();
 }
 /* }}} */
+
+
+
+
+/* {{{ Ptracing get traceID  */
+PHP_FUNCTION(molten_get_trace_id)
+{
+  RETURN_STRING(PTG(pct).pch.trace_id->val,1);
+}
+/* }}} */
+
+
+
+
+
 
 /* {{{ Ptracing set service name */
 PHP_FUNCTION(molten_set_service_name)
