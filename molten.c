@@ -732,7 +732,11 @@ PHP_MINFO_FUNCTION(molten)
 /* {{{ Ptracing get traceID  */
 PHP_FUNCTION(molten_get_trace_id)
 {
+	#if PHP_VERSION_ID < 70000
   RETURN_STRING(PTG(pct).pch.trace_id->val,1);
+	#else
+  RETURN_STRING(PTG(pct).pch.trace_id->val);
+	#endif
 }
 /* }}} */
 
