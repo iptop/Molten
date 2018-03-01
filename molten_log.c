@@ -19,6 +19,7 @@
 
 int report_msg_queue_length;
 int report_msg_is_init=0;
+int post_uri_str_length = 0;
 pthread_mutex_t report_msg_queue_mutex;
 struct report_msg_queue_node{
   struct report_msg_queue_node* prev;
@@ -80,12 +81,12 @@ void report_msg_init( char * post_url ){
   }else{
     return;
   }
-
-
-
   report_msg_queue_init();
-
-  pthread_create(&report_msg_thread_id, NULL, report_msg_thread_function, (void *)post_url);
+  char *url;
+  url=(char *)malloc(255);
+  memcpy( url,post_url,strlen( post_url )+1  );
+  post_uri_str_length= strlen(post_url);
+  pthread_create(&report_msg_thread_id, NULL, report_msg_thread_function, (void *)url);
   report_msg_thread_is_create=1;
   report_msg_thread_is_exit=0;
 }
@@ -148,6 +149,7 @@ void send_data_by_http(char *post_uri, char *post_data)
 {
     SLOG(SLOG_INFO, "[sink][http] http data sender, post_uri:%s", post_uri);
     if (post_uri != NULL && strlen(post_uri) > 5) {
+	post_uri[ post_uri_str_length ]=0;
         CURL *curl = curl_easy_init();
         if (curl) {
             CURLcode res;
